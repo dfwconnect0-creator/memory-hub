@@ -1,21 +1,107 @@
+# Memory Hub v5 — Agent Registry
+# No secrets here — API keys live in .env (AGENT_KEYS)
+
 agents:
-  opencode_001:
-    name: "OpenCode Main"
-    type: "opencode"
-    api_key: "oc_sk_xxx"
-    isolation: "private"
-    
-  antigravity_001:
-    name: "Antigravity Coding"
-    type: "antigravity"
-    api_key: "ag_sk_xxx"
-    isolation: "shared"
-    
-  langchain_agent:
-    name: "LangChain Researcher"
-    type: "langchain"
-    api_key: "lc_sk_xxx"
-    isolation: "shared"
-    
+  # ── content-creation ──────────────────────────
+  research_agent:
+    name: "Research Agent"
+    framework: "langchain"
+    project: "content-creation"
+    role: "researcher"
+    other_mcps: ["notebooklm", "web-scraper", "social-trends"]
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  writer_agent:
+    name: "Writing Agent"
+    framework: "crewai"
+    project: "content-creation"
+    role: "writer"
+    other_mcps: ["notebooklm", "grammarly"]
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  video_agent:
+    name: "Video Production Agent"
+    framework: "autogen"
+    project: "content-creation"
+    role: "video-producer"
+    other_mcps: ["remotion", "audio-mcp"]
+    permissions:
+      read_shared: true
+      write_shared: false
+
+  # ── seo-audit ──────────────────────────────────
+  seo_agent:
+    name: "SEO Audit Agent"
+    framework: "langchain"
+    project: "seo-audit"
+    role: "seo-analyst"
+    other_mcps: ["google-search", "lighthouse", "ahrefs-api"]
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  # ── personal ───────────────────────────────────
+  career_coach_agent:
+    name: "Career Coach Agent"
+    framework: "langchain"
+    project: "personal"
+    role: "career-coach"
+    other_mcps: ["google-calendar", "linkedin-mcp", "notebooklm"]
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  personal_assistant_agent:
+    name: "Personal Assistant Agent"
+    framework: "crewai"
+    project: "personal"
+    role: "assistant"
+    other_mcps: ["google-calendar", "gmail-mcp", "firebase"]
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  # ── CLI agents (MCP-native) ────────────────────
+  opencode_agent:
+    name: "OpenCode CLI Agent"
+    framework: "mcp"
+    project: "dev-tools"
+    role: "opencode-cli"
+    other_mcps: []
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  claude_code_agent:
+    name: "Claude Code CLI Agent"
+    framework: "mcp"
+    project: "dev-tools"
+    role: "claude-code-cli"
+    other_mcps: []
+    permissions:
+      read_shared: true
+      write_shared: true
+
+  antigravity_agent:
+    name: "Antigravity IDE Agent"
+    framework: "mcp"
+    project: "dev-tools"
+    role: "antigravity-ide"
+    other_mcps: []
+    permissions:
+      read_shared: true
+      write_shared: true
+
 settings:
   log_level: "INFO"
+  max_memories_per_agent: 1000
+  memory_ttl_days: 30
+  memory_categories: [trend, brand, campaign, audience, career, task, code, general]
+  rate_limits:
+    memory_add: 60
+    memory_search: 30
+    memory_cognify: 5

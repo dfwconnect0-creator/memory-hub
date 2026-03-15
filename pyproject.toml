@@ -1,13 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/memory_hub"]
+
 [project]
 name = "memory-hub"
 version = "0.1.0"
-description = "Add your description here"
+description = "Multi-agent persistent memory hub with MCP interface"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.135.1",
+    "uvicorn[standard]>=0.34.0",
     "google-genai>=1.67.0",
     "mcp>=1.26.0",
     "mem0ai>=1.0.5",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
 ]
@@ -21,3 +32,19 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.15.6",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
