@@ -1,0 +1,20 @@
+{
+  "$comment": "Add this to Antigravity IDE MCP server configuration",
+  "mcpServers": {
+    "memory-hub": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/Users/mohamedsalah/cognee-mcp",
+        "python",
+        "-m",
+        "memory_hub.transport.mcp.mcp_server"
+      ],
+      "env": {
+        "AGENT_KEY": "YOUR_ANTIGRAVITY_AGENT_KEY_HERE",
+        "AGENT_ID": "antigravity_agent"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$comment": "Add this to .claude/settings.json (project-level) or ~/.claude/settings.json (user-level)",
+  "mcpServers": {
+    "memory-hub": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/Users/mohamedsalah/cognee-mcp",
+        "python",
+        "-m",
+        "memory_hub.transport.mcp.mcp_server"
+      ],
+      "env": {
+        "AGENT_KEY": "YOUR_CLAUDE_CODE_AGENT_KEY_HERE",
+        "AGENT_ID": "claude_code_agent"
+      }
+    }
+  }
+}
