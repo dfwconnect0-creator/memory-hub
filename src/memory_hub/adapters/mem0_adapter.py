@@ -11,12 +11,19 @@ from memory_hub.models.domain import MemoryCategory, MemoryEntry, SearchResult
 
 
 def _build_mem0_config(settings: Settings) -> dict[str, Any]:
-    """Build mem0 config using Gemini Embedding 2 (768 dims, free tier)."""
+    """Build mem0 config using Gemini for both LLM and embeddings (free tier)."""
     return {
-        "embedder": {
-            "provider": "google",
+        "llm": {
+            "provider": "gemini",
             "config": {
-                "model": "gemini-embedding-002",
+                "model": "gemini-2.5-flash",
+                "api_key": settings.GEMINI_API_KEY,
+            },
+        },
+        "embedder": {
+            "provider": "gemini",
+            "config": {
+                "model": "gemini-embedding-001",
                 "embedding_dims": 768,
                 "api_key": settings.GEMINI_API_KEY,
             },
