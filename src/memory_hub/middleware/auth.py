@@ -1,9 +1,10 @@
 """Auth middleware: validates X-API-Key header on every request."""
 from __future__ import annotations
 
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 from memory_hub.interfaces.agent_registry import AgentRegistry
 
@@ -14,11 +15,11 @@ _PUBLIC_PATHS = {"/health", "/api/v1/health"}
 class AuthMiddleware(BaseHTTPMiddleware):
     """Rejects requests missing or with invalid X-API-Key header."""
 
-    def __init__(self, app, registry: AgentRegistry) -> None:
+    def __init__(self, app: ASGIApp, registry: AgentRegistry) -> None:
         super().__init__(app)
         self._registry = registry
 
-    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path in _PUBLIC_PATHS:
             return await call_next(request)
 

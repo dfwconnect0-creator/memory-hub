@@ -39,7 +39,7 @@ def create_app(
             from memory_hub.adapters.mem0_adapter import Mem0Adapter
             from memory_hub.config import Settings
 
-            settings = Settings()
+            settings = Settings()  # type: ignore[call-arg]
             app.state.memory = MemoryService(store=Mem0Adapter(settings))
 
         yield
@@ -67,6 +67,6 @@ def _build_registry() -> RegistryService:
     """Create RegistryService from .env + agents.yaml (production path)."""
     from memory_hub.config import Settings, load_agents_config
 
-    settings = Settings()
+    settings = Settings()  # type: ignore[call-arg]
     agents_data = load_agents_config(settings.AGENTS_YAML_PATH)
     return RegistryService(settings=settings, agents_data=agents_data)

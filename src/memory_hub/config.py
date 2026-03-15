@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,15 +30,17 @@ class Settings(BaseSettings):
     def agent_key_map(self) -> dict[str, str]:
         """Parsed mapping of api_key → agent_id."""
         try:
-            return json.loads(self.AGENT_KEYS)
+            result: dict[str, str] = json.loads(self.AGENT_KEYS)
+            return result
         except (json.JSONDecodeError, ValueError):
             return {}
 
 
-def load_agents_config(yaml_path: str = "config/agents.yaml") -> dict:  # type: ignore[type-arg]
+def load_agents_config(yaml_path: str = "config/agents.yaml") -> dict[str, object]:
     """Load agents.yaml and return the parsed dict. Raises FileNotFoundError if missing."""
     path = Path(yaml_path)
     if not path.exists():
         raise FileNotFoundError(f"Agents config not found: {yaml_path}")
     with open(path) as f:
-        return yaml.safe_load(f)  # type: ignore[no-any-return]
+        data: dict[str, object] = yaml.safe_load(f)
+        return data

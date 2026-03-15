@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
@@ -110,7 +111,7 @@ async def handle_memory_status(state: AgentState) -> dict[str, Any]:
 # ── Production lifespan ──────────────────────────────────────────────────────
 
 @asynccontextmanager
-async def _production_lifespan(server: FastMCP):  # type: ignore[type-arg]
+async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
     """Read AGENT_ID + AGENT_KEY from env, validate, wire services."""
     agent_id = os.environ.get("AGENT_ID", "")
     agent_key = os.environ.get("AGENT_KEY", "")
@@ -122,7 +123,7 @@ async def _production_lifespan(server: FastMCP):  # type: ignore[type-arg]
 
     from memory_hub.config import Settings, load_agents_config
 
-    settings = Settings()
+    settings = Settings()  # type: ignore[call-arg]
     agents_data = load_agents_config(settings.AGENTS_YAML_PATH)
     registry = RegistryService(settings=settings, agents_data=agents_data)
 
@@ -150,14 +151,14 @@ async def _production_lifespan(server: FastMCP):  # type: ignore[type-arg]
 
 # ── Server factory ───────────────────────────────────────────────────────────
 
-def create_mcp_server() -> FastMCP:  # type: ignore[type-arg]
+def create_mcp_server() -> FastMCP:
     """Create and return the MCP server. Safe to call multiple times (e.g. in tests)."""
-    server: FastMCP = FastMCP("Memory Hub", lifespan=_production_lifespan)  # type: ignore[type-arg]
+    server: FastMCP = FastMCP("Memory Hub", lifespan=_production_lifespan)
     _register_tools(server)
     return server
 
 
-def _register_tools(server: FastMCP) -> None:  # type: ignore[type-arg]
+def _register_tools(server: FastMCP) -> None:
     """Register all MCP tools onto the server instance."""
 
     @server.tool(

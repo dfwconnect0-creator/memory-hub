@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from mem0 import Memory
+from mem0 import Memory  # type: ignore[import-untyped]
 
 from memory_hub.config import Settings
 from memory_hub.models.domain import MemoryCategory, MemoryEntry, SearchResult
