@@ -1,0 +1,21 @@
+agents:
+  opencode_001:
+    name: "OpenCode Main"
+    type: "opencode"
+    api_key: "oc_sk_xxx"
+    isolation: "private"
+    
+  antigravity_001:
+    name: "Antigravity Coding"
+    type: "antigravity"
+    api_key: "ag_sk_xxx"
+    isolation: "shared"
+    
+  langchain_agent:
+    name: "LangChain Researcher"
+    type: "langchain"
+    api_key: "lc_sk_xxx"
+    isolation: "shared"
+    
+settings:
+  log_level: "INFO"
