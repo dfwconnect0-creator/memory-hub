@@ -8,3 +8,17 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Secrets — NEVER commit
+.env
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS files
+.DS_Store
+
+# CLI output logs
+CLi output/
