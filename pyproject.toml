@@ -43,7 +43,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["RUF012"]
+ignore = ["RUF012", "B008"]  # B008: FastAPI Depends() in defaults is the official pattern
 
 [tool.mypy]
 python_version = "3.12"
