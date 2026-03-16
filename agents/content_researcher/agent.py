@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 from google import genai
+from google.genai import types
 
 from adapters.langchain_tool import MemoryAddTool, MemorySearchTool
 
@@ -76,7 +77,9 @@ class ContentResearcherAgent:
         if not content.startswith("["):
             tag = _CATEGORY_TAG.get(category, "[TREND]")
             content = f"{tag} {content}"
-        payload = json.dumps({"content": content, "category": category})
+        # Wrap for mem0's fact extraction — it needs "personal fact" framing
+        storable = f"User researched and found: {content}"
+        payload = json.dumps({"content": storable, "category": category})
         result: dict[str, Any] = json.loads(self.memory_add._run(payload))
         return result
 
@@ -94,6 +97,9 @@ class ContentResearcherAgent:
             response = self._client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                ),
             )
             raw = response.text.strip() if response.text else ""
         except Exception as e:
@@ -105,13 +111,10 @@ class ContentResearcherAgent:
             line = line.strip()
             if any(line.startswith(t) for t in valid_tags):
                 findings.append(line)
-                category = "trend"
-                if line.startswith("[INSIGHT]"):
-                    category = "insight"
-                elif line.startswith("[SOURCE]"):
-                    category = "source"
-                with contextlib.suppress(Exception):
-                    self.store_finding(line, category=category)
+                try:
+                    self.store_finding(line, category="trend")
+                except Exception as e:
+                    print(f"  ⚠ store failed: {e}")
 
         return findings
 

@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from mem0 import Memory  # type: ignore[import-untyped]
 
@@ -24,7 +28,7 @@ def _build_mem0_config(settings: Settings) -> dict[str, Any]:
             "provider": "gemini",
             "config": {
                 "model": "gemini-embedding-001",
-                "embedding_dims": 768,
+                "embedding_dims": 3072,
                 "api_key": settings.GEMINI_API_KEY,
             },
         },
@@ -32,7 +36,8 @@ def _build_mem0_config(settings: Settings) -> dict[str, Any]:
             "provider": "qdrant",
             "config": {
                 "collection_name": "memory_hub",
-                "embedding_model_dims": 768,  # must match embedder dims
+                "embedding_model_dims": 3072,  # must match embedder dims
+                "path": str(Path.home() / ".mem0" / "qdrant_data"),
             },
         },
     }
