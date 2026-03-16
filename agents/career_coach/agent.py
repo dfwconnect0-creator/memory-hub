@@ -1,6 +1,7 @@
 """Career Coach Agent — LangChain-compatible memory-backed career advisor."""
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from typing import Any
@@ -83,17 +84,19 @@ class CareerCoachAgent:
                 model="gemini-2.5-flash",
                 contents=prompt,
             )
-            reply = response.text.strip() if response.text else "I'm here to help with your career. Could you tell me more?"
+            if response.text:
+                reply = response.text.strip()
+            else:
+                reply = "I'm here to help with your career. Could you tell me more?"
         except Exception as e:
             reply = f"(LLM error: {e})"
 
         # Auto-store if the user shared career info
         lower = user_input.lower()
-        if any(kw in lower for kw in ["goal", "want to", "plan", "working on", "learned", "built", "finished"]):
-            try:
+        keywords = ["goal", "want to", "plan", "working on", "learned", "built", "finished"]
+        if any(kw in lower for kw in keywords):
+            with contextlib.suppress(Exception):
                 self.remember(user_input)
-            except Exception:
-                pass
 
         return reply
 

@@ -24,7 +24,7 @@ def _load_env(path: Path) -> None:
 # Load .env from project root
 _load_env(Path(__file__).resolve().parents[2] / ".env")
 
-from agents.career_coach.agent import CareerCoachAgent
+from agents.career_coach.agent import CareerCoachAgent  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:

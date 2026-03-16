@@ -10,7 +10,7 @@
 
 ## Track 2: First Agent (Priority: HIGH)
 - [x] 2A Career Coach Agent (LangChain)
-- [ ] 2B Research Agent (LangChain)
+- [x] 2B Research Agent (LangChain)
 - [ ] 2C SEO Agent (AutoGen)
 
 ## Track 3: Production Hardening (Priority: MEDIUM)
