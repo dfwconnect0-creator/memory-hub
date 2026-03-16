@@ -9,7 +9,7 @@
 - [ ] 1.4 Add error handling middleware
 
 ## Track 2: First Agent (Priority: HIGH)
-- [ ] 2A Career Coach Agent (LangChain)
+- [x] 2A Career Coach Agent (LangChain)
 - [ ] 2B Research Agent (LangChain)
 - [ ] 2C SEO Agent (AutoGen)
 
