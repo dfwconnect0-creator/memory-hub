@@ -44,11 +44,11 @@ agents:
       read_shared: true
       write_shared: true
 
-  # ── personal ───────────────────────────────────
+  # ── bladina ────────────────────────────────────
   career_coach_agent:
     name: "Career Coach Agent"
     framework: "langchain"
-    project: "personal"
+    project: "bladina"
     role: "career-coach"
     other_mcps: ["google-calendar", "linkedin-mcp", "notebooklm"]
     permissions:
@@ -58,7 +58,7 @@ agents:
   personal_assistant_agent:
     name: "Personal Assistant Agent"
     framework: "crewai"
-    project: "personal"
+    project: "bladina"
     role: "assistant"
     other_mcps: ["google-calendar", "gmail-mcp", "firebase"]
     permissions:

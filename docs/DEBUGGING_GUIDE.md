@@ -208,14 +208,117 @@ Remove debug prints before committing.
 
 ---
 
+### 9. Cognee Backend Returns Empty `memory_id` — This Is Normal
+
+**Observed:** `POST /memory` returns `{"memory_id": "", "status": "ok"}` when `COGNEE_ENABLED=true`.
+
+**Root cause:** Cognee does not return a stable document ID after a write. The empty string is the Cognee adapter's placeholder — the memory IS stored and IS searchable. This is **expected behavior**, not a bug.
+
+**How to tell the difference** (empty `memory_id` has two very different meanings):
+
+| Situation | `memory_id` | `status` | Searchable? | Action |
+|:----------|:-----------|:---------|:-----------|:-------|
+| Cognee is active backend | `""` | `"ok"` | ✅ Yes | Nothing — this is fine |
+| Dim mismatch / fact rejection | `""` | `"ok"` | ❌ No | See issues #1 and #2 above |
+
+**How to confirm writes are landing:**
+```bash
+# Write something unique, then search for it
+curl -s -X POST http://localhost:8000/api/v1/memory/search \
+  -H "X-API-Key: $HUB_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "your unique phrase", "agent_id": "career_coach_agent", "framework": "langchain", "project": "personal", "limit": 3}'
+```
+
+If the write landed, it shows up in results within a few seconds.
+
+**Implication for agents:** Do NOT use the returned `memory_id` for delete/update operations when Cognee is active — it will be empty. Cognee memories are managed via search + Cognee's own graph tools. If you need stable IDs, disable Cognee (`COGNEE_ENABLED=false`) and use mem0 only.
+
+**Tested:** 2026-03-17 — `career_coach_agent` write + search roundtrip confirmed working with empty `memory_id`.
+
+---
+
+### 10. Qdrant Cloud URL Must Not Include Port `:6333`
+
+**Observed:** Writes return `memory_id: ""` and Qdrant Cloud `points_count` never increases.
+
+**Root cause:** Port `6333` is for self-hosted local Qdrant. Qdrant Cloud uses standard HTTPS (port 443). Adding `:6333` to the cloud URL causes the connection to silently fail or route incorrectly.
+
+**Bad:**
+```env
+QDRANT_URL=https://xxxx.aws.cloud.qdrant.io:6333
+```
+
+**Good:**
+```env
+QDRANT_URL=https://xxxx.aws.cloud.qdrant.io
+```
+
+**How to verify the URL is correct before trusting it:**
+```bash
+curl -s -H "api-key: $QDRANT_API_KEY" "$QDRANT_URL/collections"
+# Should return: {"result":{"collections":[...]},"status":"ok"}
+# If it hangs or errors — the URL is wrong
+```
+
+**Tested:** 2026-03-17 — removing `:6333` restored cloud writes immediately.
+
+---
+
+### 11. mem0 v1.0.5 Bug — `event: NONE` Crashes Qdrant Upsert
+
+**Observed:** Server log shows `Error processing memory action: {'event': 'NONE'}, Error: 6 validation errors for PointStruct vector ... Input should be a valid list [input_value=None]`. Writes silently fail.
+
+**Root cause:** mem0's internal LLM extracts facts from content and assigns each an event (`ADD`, `UPDATE`, `DELETE`, `NONE`). `NONE` means "no change needed." The correct behavior is to skip the upsert. But in v1.0.5, the `NONE` branch still calls `vector_store.update(vector_id=..., vector=None, ...)`, which tries to build a `PointStruct(vector=None)` — an invalid Pydantic object.
+
+**File:** `.venv/lib/python3.12/site-packages/mem0/vector_stores/qdrant.py` — `update()` method, line ~207
+
+**The bug:**
+```python
+# mem0 v1.0.5 — always does this even when vector=None
+point = PointStruct(id=vector_id, vector=vector, payload=payload)  # crashes if vector=None
+self.client.upsert(...)
+```
+
+**The patch (applied to venv):**
+```python
+if vector is None:
+    # Only update payload — keep existing embedding intact
+    if payload:
+        self.client.set_payload(
+            collection_name=self.collection_name,
+            payload=payload,
+            points=[vector_id],
+        )
+else:
+    point = PointStruct(id=vector_id, vector=vector, payload=payload)
+    self.client.upsert(collection_name=self.collection_name, points=[point])
+```
+
+> [!WARNING]
+> This patch is applied directly to the venv. It will be lost if you recreate the venv with `uv sync`. Re-apply it or wait for mem0 to release a fix. Check `mem0.__version__` — if it's above `1.0.5`, test whether the bug is fixed before re-patching.
+
+**How to detect this bug:**
+- Server log contains `Error processing memory action:` with `'event': 'NONE'`
+- `memory_id` is empty string on writes
+- `points_count` in Qdrant Cloud does not increase after writes
+- No exception is raised to the API caller — completely silent
+
+**Tested:** 2026-03-17 — patch confirmed working, Qdrant Cloud points increased after fix.
+
+---
+
 ## Quick Reference: Error → Cause → Fix
 
 | Error | Cause | Fix |
 |:------|:------|:----|
-| `memory_id: ""` | Dimension mismatch OR mem0 fact rejection | Check dims (3072), wrap content |
+| `memory_id: ""` + searchable | Cognee is active backend | Expected — no action needed |
+| `memory_id: ""` + NOT searchable | Dimension mismatch OR mem0 fact rejection | Check dims (3072), wrap content |
+| `memory_id: ""` + Qdrant points not growing | Wrong Qdrant URL (`:6333`) or mem0 NONE bug | Fix URL, apply patch #11 |
 | `403 Forbidden` | Missing/wrong API key | Check `.env` loading + `AGENT_KEYS` |
 | `422 Unprocessable` | Invalid category enum value | Use valid `MemoryCategory` values |
 | `results: []` from mem0 | Content rejected by fact extraction | Add "User researched:" prefix |
+| `PointStruct vector=None` in logs | mem0 v1.0.5 bug — NONE event upsert | Apply patch in issue #11 |
 | `PermissionError .mem0` | macOS extended attrs lock | `xattr -rc ~/.mem0 && rm -rf ~/.mem0` |
 | `uv` cache error | Git lock in uv cache | `UV_CACHE_DIR=/tmp/uv-cache` |
 | `timed out` on store | mem0 LLM call took too long | Retry, or check Gemini API quota |
