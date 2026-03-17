@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -12,6 +11,22 @@ from mem0 import Memory  # type: ignore[import-untyped]
 
 from memory_hub.config import Settings
 from memory_hub.models.domain import MemoryCategory, MemoryEntry, SearchResult
+
+
+def _build_qdrant_config(settings: Settings) -> dict[str, Any]:
+    """Return Qdrant vector-store config: cloud if QDRANT_URL is set, else local."""
+    qdrant_config: dict[str, Any] = {
+        "collection_name": "memory_hub",
+        "embedding_model_dims": 3072,
+    }
+    if settings.QDRANT_URL:
+        qdrant_config["url"] = settings.QDRANT_URL
+        qdrant_config["api_key"] = settings.QDRANT_API_KEY
+        logger.info("Qdrant: using cloud at %s", settings.QDRANT_URL)
+    else:
+        qdrant_config["path"] = "/tmp/mem0_storage/qdrant_data"
+        logger.info("Qdrant: using local storage at /tmp/mem0_storage/qdrant_data")
+    return qdrant_config
 
 
 def _build_mem0_config(settings: Settings) -> dict[str, Any]:
@@ -34,11 +49,7 @@ def _build_mem0_config(settings: Settings) -> dict[str, Any]:
         },
         "vector_store": {
             "provider": "qdrant",
-            "config": {
-                "collection_name": "memory_hub",
-                "embedding_model_dims": 3072,  # must match embedder dims
-                "path": str(Path.home() / ".mem0" / "qdrant_data"),
-            },
+            "config": _build_qdrant_config(settings),
         },
     }
 

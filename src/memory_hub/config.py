@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     PORT: int = 8000
     LOG_LEVEL: str = "INFO"
 
+    # Qdrant Cloud URL — set to enable cross-machine memory sync
+    QDRANT_URL: str = ""
+    # Qdrant Cloud API key
+    QDRANT_API_KEY: str = ""
+
     @property
     def agent_key_map(self) -> dict[str, str]:
         """Parsed mapping of api_key → agent_id."""
