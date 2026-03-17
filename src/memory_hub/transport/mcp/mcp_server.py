@@ -38,6 +38,7 @@ class AgentState:
     agent_id: str
     project: str
     agent_name: str
+    cognee_store: Any | None = None  # CogneeAdapter when COGNEE_ENABLED
 
 
 # ── Business logic (pure functions — testable without MCP context) ────────────
@@ -137,8 +138,23 @@ async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
 
     from memory_hub.adapters.mem0_adapter import Mem0Adapter
 
-    store = Mem0Adapter(settings)
-    memory_service = MemoryService(store=store)
+    mem0_store = Mem0Adapter(settings)
+    cognee_store = None
+
+    if settings.COGNEE_ENABLED:
+        from memory_hub.adapters.cognee_adapter import CogneeAdapter
+        from memory_hub.services.dual_memory_service import DualMemoryService
+
+        cognee_store = CogneeAdapter(settings)
+        if settings.COGNEE_DUAL_WRITE:
+            memory_service = DualMemoryService(
+                mem0_store=mem0_store,
+                cognee_store=cognee_store,
+            )
+        else:
+            memory_service = MemoryService(store=mem0_store)
+    else:
+        memory_service = MemoryService(store=mem0_store)
 
     yield AgentState(
         memory_service=memory_service,
@@ -146,6 +162,7 @@ async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
         agent_id=agent_id,
         project=agent_config.project,
         agent_name=agent_config.name,
+        cognee_store=cognee_store,
     )
 
 
@@ -188,6 +205,52 @@ def _register_tools(server: FastMCP) -> None:
         state: AgentState = ctx.request_context.lifespan_context
         result = await handle_memory_status(state)
         return json.dumps(result)
+
+    @server.tool(
+        description=(
+            "Build a knowledge graph from recent memories using Cognee (local Neo4j + Ollama). "
+            "This processes memories through entity extraction and relationship detection. "
+            "Requires Neo4j and Ollama to be running. May take 30-120 seconds."
+        )
+    )
+    async def memory_cognify(ctx: Context) -> str:  # type: ignore[type-arg]
+        state: AgentState = ctx.request_context.lifespan_context
+        if hasattr(state, "cognee_store") and state.cognee_store is not None:
+            result = await state.cognee_store.cognify()
+            return json.dumps(result)
+        return json.dumps({"status": "error", "message": "Cognee is not enabled"})
+
+    @server.tool(
+        description=(
+            "Deep search using Cognee's knowledge graph (Neo4j + LanceDB). "
+            "Returns results from entity relationships and semantic embeddings. "
+            "search_type: CHUNKS | GRAPH_COMPLETION | RAG_COMPLETION"
+        )
+    )
+    async def memory_search_deep(  # type: ignore[type-arg]
+        query: str,
+        ctx: Context,
+        search_type: str = "CHUNKS",
+        limit: int = 10,
+    ) -> str:
+        state: AgentState = ctx.request_context.lifespan_context
+        if hasattr(state, "cognee_store") and state.cognee_store is not None:
+            results = await state.cognee_store.search(
+                query=query,
+                project=state.project,
+                agent_id=state.agent_id,
+                limit=limit,
+            )
+            return json.dumps({
+                "results": [
+                    {"content": r.content, "score": r.score, "source": "cognee"}
+                    for r in results
+                ],
+                "total": len(results),
+                "query": query,
+                "search_type": search_type,
+            })
+        return json.dumps({"status": "error", "message": "Cognee is not enabled"})
 
 
 # ── Module-level server + entry point ────────────────────────────────────────

@@ -31,6 +31,18 @@ class Settings(BaseSettings):
     # Qdrant Cloud API key
     QDRANT_API_KEY: str = ""
 
+    # Cognee integration
+    COGNEE_ENABLED: bool = False
+    COGNEE_PYTHON_PATH: str = str(
+        Path.home() / "Desktop/install_link/cognee-official/cognee-mcp/.venv/bin/python"
+    )
+    COGNEE_ENV_PATH: str = str(
+        Path.home() / "Desktop/install_link/cognee/.env"
+    )
+    COGNEE_SEARCH_TYPE: str = "CHUNKS"  # CHUNKS | GRAPH_COMPLETION | RAG_COMPLETION
+    COGNEE_AUTO_COGNIFY: bool = True  # Auto-build knowledge graph after add
+    COGNEE_DUAL_WRITE: bool = True  # Write to both mem0 AND Cognee
+
     @property
     def agent_key_map(self) -> dict[str, str]:
         """Parsed mapping of api_key → agent_id."""

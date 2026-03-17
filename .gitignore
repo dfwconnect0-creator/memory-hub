@@ -22,3 +22,7 @@ htmlcov/
 
 # CLI output logs
 CLi output/
+
+# Server logs
+*.log
+server.log

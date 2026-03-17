@@ -6,7 +6,7 @@
       "args": [
         "run",
         "--project",
-        "/Users/mohamedsalah/cognee-mcp",
+        "/home/bladina/Projects/BaldinaAgents/memory-hub",
         "python",
         "-m",
         "memory_hub.transport.mcp.mcp_server"

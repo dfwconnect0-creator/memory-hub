@@ -40,7 +40,20 @@ def create_app(
             from memory_hub.config import Settings
 
             settings = Settings()  # type: ignore[call-arg]
-            app.state.memory = MemoryService(store=Mem0Adapter(settings))
+            mem0_store = Mem0Adapter(settings)
+
+            if settings.COGNEE_ENABLED and settings.COGNEE_DUAL_WRITE:
+                from memory_hub.adapters.cognee_adapter import CogneeAdapter
+                from memory_hub.services.dual_memory_service import DualMemoryService
+
+                cognee_store = CogneeAdapter(settings)
+                app.state.memory = DualMemoryService(
+                    mem0_store=mem0_store,
+                    cognee_store=cognee_store,
+                )
+                app.state.cognee_store = cognee_store  # for direct access
+            else:
+                app.state.memory = MemoryService(store=mem0_store)
 
         yield
         # Shutdown: nothing to clean up yet
