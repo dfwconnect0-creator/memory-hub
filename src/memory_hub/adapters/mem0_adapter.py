@@ -22,6 +22,7 @@ def _build_qdrant_config(settings: Settings) -> dict[str, Any]:
         "collection_name": "memory_hub",
         "embedding_model_dims": 3072,
         "path": path,
+        "on_disk": True,  # persist data across restarts; without this mem0 wipes the dir
     }
 
 

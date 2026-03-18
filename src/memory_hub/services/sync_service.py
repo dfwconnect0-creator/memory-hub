@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from memory_hub.config import Settings
 
@@ -66,9 +66,18 @@ class SyncService:
                     with_vectors=True,
                 )
                 if points:
+                    # scroll() returns Record objects; upsert() requires PointStruct
+                    structs = [
+                        PointStruct(
+                            id=p.id,
+                            payload=p.payload or {},
+                            vector=p.vector or {},
+                        )
+                        for p in points
+                    ]
                     cloud_client.upsert(
                         collection_name="memory_hub",
-                        points=points,
+                        points=structs,
                     )
                     total_synced += len(points)
                     logger.info("Synced batch of %d points", len(points))
