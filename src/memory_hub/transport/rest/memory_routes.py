@@ -1,7 +1,9 @@
-"""Memory routes: add, search, batch, export."""
+"""Memory routes: add, search, batch, export, sync."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from memory_hub.models.requests import BatchAddRequest, MemoryAddRequest, SearchRequest
 from memory_hub.models.responses import BatchAddResponse, MemoryAddResponse, SearchResponse
@@ -55,6 +57,23 @@ async def batch_add_memories(
         agent_id=body.agent_id,
     )
     return BatchAddResponse(memory_ids=memory_ids, count=len(memory_ids))
+
+
+@router.post("/sync")
+async def trigger_sync(request: Request) -> dict[str, Any]:
+    """Trigger a manual backup of local memories to Qdrant Cloud. Master key only."""
+    if getattr(request.state, "agent_id", None) != "hub":
+        raise HTTPException(status_code=403, detail="Master key required")
+
+    sync_service = getattr(request.app.state, "sync", None)
+    if sync_service is None:
+        raise HTTPException(status_code=503, detail="Sync service not configured")
+
+    if not sync_service.can_sync():
+        raise HTTPException(status_code=400, detail="Cloud credentials not configured")
+
+    result: dict[str, Any] = await sync_service.sync()
+    return result
 
 
 @router.get("/memory/export")

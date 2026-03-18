@@ -76,3 +76,13 @@ def test_default_values(monkeypatch):
     assert s.HOST == "0.0.0.0"
     assert s.PORT == 8000
     assert s.LOG_LEVEL == "INFO"
+
+
+def test_sync_settings_defaults(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("HUB_API_KEY", "test-hub-secret")
+    from memory_hub.config import Settings
+    s = Settings()
+    assert s.QDRANT_LOCAL_PATH == "memory-data/qdrant"
+    assert s.SYNC_ENABLED is True
+    assert s.SYNC_SCHEDULE == "02:00"

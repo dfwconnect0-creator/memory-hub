@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     QDRANT_URL: str = ""
     # Qdrant Cloud API key
     QDRANT_API_KEY: str = ""
+    QDRANT_LOCAL_PATH: str = "memory-data/qdrant"  # Local Qdrant storage (persistent, not /tmp)
+    SYNC_ENABLED: bool = True  # Enable nightly local-to-cloud backup
+    SYNC_SCHEDULE: str = "02:00"  # Nightly backup time (HH:MM, 24h local time)
 
     # Cognee integration
     COGNEE_ENABLED: bool = False

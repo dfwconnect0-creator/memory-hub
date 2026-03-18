@@ -39,6 +39,7 @@ class AgentState:
     project: str
     agent_name: str
     cognee_store: Any | None = None  # CogneeAdapter when COGNEE_ENABLED
+    sync_service: Any | None = None  # SyncService when cloud creds present
 
 
 # ── Business logic (pure functions — testable without MCP context) ────────────
@@ -137,6 +138,7 @@ async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
         raise RuntimeError(f"Unknown AGENT_ID: {agent_id!r}. Check config/agents.yaml")
 
     from memory_hub.adapters.mem0_adapter import Mem0Adapter
+    from memory_hub.services.sync_service import SyncService
 
     mem0_store = Mem0Adapter(settings)
     cognee_store = None
@@ -156,6 +158,8 @@ async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
     else:
         memory_service = MemoryService(store=mem0_store)
 
+    sync_service = SyncService(settings)
+
     yield AgentState(
         memory_service=memory_service,
         registry=registry,
@@ -163,6 +167,7 @@ async def _production_lifespan(server: FastMCP) -> AsyncIterator[AgentState]:
         project=agent_config.project,
         agent_name=agent_config.name,
         cognee_store=cognee_store,
+        sync_service=sync_service,
     )
 
 
@@ -251,6 +256,37 @@ def _register_tools(server: FastMCP) -> None:
                 "search_type": search_type,
             })
         return json.dumps({"status": "error", "message": "Cognee is not enabled"})
+
+    @server.tool(
+        description=(
+            "Trigger a manual backup of local memories to Qdrant Cloud. "
+            "Returns sync report with points_synced count."
+        )
+    )
+    async def memory_sync(ctx: Context) -> str:  # type: ignore[type-arg]
+        state: AgentState = ctx.request_context.lifespan_context
+        if state.sync_service is None:
+            return json.dumps({"status": "error", "message": "Sync not configured"})
+        if not state.sync_service.can_sync():
+            return json.dumps({"status": "error", "message": "Cloud credentials not configured"})
+        result = await state.sync_service.sync()
+        return json.dumps(result)
+
+    @server.tool(description="Return sync configuration status and storage paths.")
+    async def memory_sync_status(ctx: Context) -> str:  # type: ignore[type-arg]
+        state: AgentState = ctx.request_context.lifespan_context
+        if state.sync_service is None:
+            return json.dumps({
+                "sync_available": False,
+                "cloud_url": "not configured",
+                "local_path": "",
+            })
+        svc_settings = state.sync_service._settings
+        return json.dumps({
+            "sync_available": state.sync_service.can_sync(),
+            "cloud_url": svc_settings.QDRANT_URL or "not configured",
+            "local_path": svc_settings.QDRANT_LOCAL_PATH,
+        })
 
 
 # ── Module-level server + entry point ────────────────────────────────────────

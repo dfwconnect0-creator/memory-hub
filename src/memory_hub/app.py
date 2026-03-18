@@ -1,6 +1,8 @@
 """FastAPI app factory with lifespan dependency wiring."""
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -18,6 +20,7 @@ from memory_hub.transport.rest.memory_routes import router as memory_router
 def create_app(
     memory_service: MemoryService | None = None,
     registry: RegistryService | None = None,
+    sync_service: Any | None = None,
 ) -> FastAPI:
     """App factory.
 
@@ -26,20 +29,30 @@ def create_app(
     """
     _registry = registry or _build_registry()
     _memory_service = memory_service  # resolved lazily in lifespan if None
+    _sync_service = sync_service  # wired in Phase 4 for production; passed explicitly in tests
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> Any:
+        stop_event: asyncio.Event | None = None
+        scheduler_task: asyncio.Task | None = None  # type: ignore[type-arg]
+
         # Wire services into app.state so route deps can access them
         app.state.registry = _registry
         app.state.health = HealthService(registry=_registry)
+        app.state.sync = _sync_service  # may be overridden below in production
 
         if _memory_service is not None:
+            # Test path: use injected mock, no scheduler
             app.state.memory = _memory_service
         else:
+            # Production path: build from .env + start scheduler
             from memory_hub.adapters.mem0_adapter import Mem0Adapter
             from memory_hub.config import Settings
+            from memory_hub.services.sync_scheduler import start_sync_scheduler
+            from memory_hub.services.sync_service import SyncService
 
             settings = Settings()  # type: ignore[call-arg]
+            app.state.settings = settings
             mem0_store = Mem0Adapter(settings)
 
             if settings.COGNEE_ENABLED and settings.COGNEE_DUAL_WRITE:
@@ -55,8 +68,25 @@ def create_app(
             else:
                 app.state.memory = MemoryService(store=mem0_store)
 
+            # Wire production sync service (overrides any injected value)
+            sync_svc = SyncService(settings)
+            app.state.sync = sync_svc
+
+            if settings.SYNC_ENABLED and sync_svc.can_sync():
+                stop_event = asyncio.Event()
+                scheduler_task = asyncio.create_task(
+                    start_sync_scheduler(sync_svc, settings.SYNC_SCHEDULE, stop_event)
+                )
+
         yield
-        # Shutdown: nothing to clean up yet
+
+        # Shutdown: stop scheduler gracefully
+        if scheduler_task is not None and not scheduler_task.done():
+            if stop_event is not None:
+                stop_event.set()
+            scheduler_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await scheduler_task
 
     app = FastAPI(
         title="Memory Hub v5",
