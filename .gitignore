@@ -26,3 +26,6 @@ CLi output/
 # Server logs
 *.log
 server.log
+
+# Local Qdrant persistent data — machine-specific, never commit
+memory-data/

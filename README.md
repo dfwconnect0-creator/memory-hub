@@ -1,18 +1,22 @@
-# Memory Hub v5
+# Memory Hub v6
 
 Persistent, cross-agent memory for multi-agent AI systems.
 Agents store and retrieve memories scoped to their **project** via a REST API or an MCP server.
 Backed by [mem0](https://github.com/mem0ai/mem0) with Google Gemini Embedding 2 (`gemini-embedding-002`, 768 dims).
+
+**Storage:** Local Qdrant is the primary store (fast, offline-capable). A nightly scheduler automatically backs up all vectors to Qdrant Cloud. Manual sync is available via REST or MCP tool.
 
 ---
 
 ## Features
 
 - **REST API** — FastAPI app with project-scoped `POST /memory`, `POST /memory/search`, `POST /memory/batch`, `GET /health`, `GET /agents`, `GET /memory/export`
-- **MCP Server** — FastMCP tools (`memory_add`, `memory_search`, `memory_status`) for Claude Code, OpenCode, and Antigravity IDE
+- **MCP Server** — FastMCP tools (`memory_add`, `memory_search`, `memory_status`, `memory_sync`, `memory_sync_status`) for Claude Code, OpenCode, and Antigravity IDE
 - **Framework Adapters** — Drop-in tools for LangChain, CrewAI, and AutoGen
 - **Auth** — Per-agent API keys; project scope locked at runtime, not caller-supplied
 - **Gemini Embedding 2** — Free-tier `gemini-embedding-002` (768 dims) via `GEMINI_API_KEY`
+- **Local-First Storage** — Local Qdrant at `memory-data/qdrant/` (persistent, fast, no network needed)
+- **Cloud Backup** — Nightly one-way sync (local → Qdrant Cloud) at configurable time; manual via `POST /api/v1/sync` or `memory_sync` MCP tool
 
 ---
 
