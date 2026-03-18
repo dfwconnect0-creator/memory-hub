@@ -68,8 +68,9 @@ def create_app(
             else:
                 app.state.memory = MemoryService(store=mem0_store)
 
-            # Wire production sync service (overrides any injected value)
-            sync_svc = SyncService(settings)
+            # Wire production sync service — inject existing qdrant client to avoid
+            # opening a second file-locked handle on the same storage path.
+            sync_svc = SyncService(settings, local_client=mem0_store.qdrant_client)
             app.state.sync = sync_svc
 
             if settings.SYNC_ENABLED and sync_svc.can_sync():

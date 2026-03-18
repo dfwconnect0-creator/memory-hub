@@ -45,11 +45,14 @@ async def test_sync_no_local_collection(monkeypatch):
     )
     from memory_hub.services.sync_service import SyncService
 
-    mock_client = MagicMock()
-    mock_client.collection_exists.return_value = False
+    # Inject a mock local client (avoids file-lock; simulates empty collection)
+    mock_local = MagicMock()
+    mock_local.collection_exists.return_value = False
 
-    with patch("memory_hub.services.sync_service.QdrantClient", return_value=mock_client):
-        svc = SyncService(settings)
+    with patch("memory_hub.services.sync_service.QdrantClient") as mock_qdrant_cls:
+        # Cloud client still created via constructor; local is injected
+        mock_qdrant_cls.return_value = MagicMock()
+        svc = SyncService(settings, local_client=mock_local)
         result = await svc.sync()
 
     assert result["status"] == "skipped"

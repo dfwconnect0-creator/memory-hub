@@ -17,8 +17,11 @@ logger = logging.getLogger(__name__)
 class SyncService:
     """Copies local Qdrant collection to Qdrant Cloud as a backup."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, local_client: QdrantClient | None = None) -> None:
         self._settings = settings
+        # Injected client reuses the existing file-locked handle (avoids double-lock error).
+        # Falls back to opening its own handle when running standalone (e.g. CLI / tests).
+        self._local_client = local_client
 
     def can_sync(self) -> bool:
         """Return True only if cloud credentials are both non-empty."""
@@ -29,7 +32,7 @@ class SyncService:
         start = time.monotonic()
         settings = self._settings
         try:
-            local_client = QdrantClient(
+            local_client = self._local_client or QdrantClient(
                 path=str(Path(settings.QDRANT_LOCAL_PATH).expanduser())
             )
             cloud_client = QdrantClient(

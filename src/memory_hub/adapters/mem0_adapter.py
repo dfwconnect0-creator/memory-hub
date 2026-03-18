@@ -57,6 +57,11 @@ class Mem0Adapter:
         config = _build_mem0_config(settings)
         self._memory: Memory = Memory.from_config(config)
 
+    @property
+    def qdrant_client(self) -> Any:
+        """Return the underlying QdrantClient held by mem0 (avoids opening a second lock)."""
+        return self._memory.vector_store.client
+
     async def add(self, entry: MemoryEntry) -> str:
         """Store a memory scoped to project (user_id) + agent_id."""
         result = await asyncio.to_thread(
